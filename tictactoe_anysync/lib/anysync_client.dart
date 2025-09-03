@@ -78,11 +78,12 @@ class AnySyncClient {
     }
   }
 
-  Future<bool> sendReset({required String by}) async {
+  Future<bool> sendReset({required String by, required int sessionId}) async {
     if (!_initialized || _currentSpaceId == null) return false;
     final payload = jsonEncode({
       'type': 'tictactoe_reset',
       'by': by,
+      'sessionId': sessionId,
       'timestamp': DateTime.now().millisecondsSinceEpoch,
     });
     final spaceIdPtr = _currentSpaceId!.toNativeUtf8();
@@ -192,7 +193,10 @@ class AnySyncClient {
       if (type == 'tictactoe_move') {
         event = TicTacToeEvent.move(TicTacToeMove.fromJson(operationData));
       } else if (type == 'tictactoe_reset') {
-        event = TicTacToeEvent.reset(by: operationData['by'] as String?);
+        event = TicTacToeEvent.reset(
+          by: operationData['by'] as String?,
+          sessionId: (operationData['sessionId'] as num?)?.toInt(),
+        );
       } else if (type == 'player_register') {
         event = TicTacToeEvent.playerRegister(
           operationData['playerId'] as String?,
@@ -216,7 +220,8 @@ class AnySyncClient {
             };
           }
         }
-        event = TicTacToeEvent.snapshotState(players: players, board: board, to: to, meta: meta);
+        final sessionId = (operationData['sessionId'] as num?)?.toInt();
+        event = TicTacToeEvent.snapshotState(players: players, board: board, to: to, meta: meta, sessionId: sessionId);
       }
       final handler = _eventHandler;
       if (handler != null && event != null) {
@@ -275,12 +280,14 @@ class TicTacToeMove {
   final int position;
   final String playerId;
   final int timestamp;
+  final int sessionId;
 
   TicTacToeMove({
     required this.id,
     required this.position,
     required this.playerId,
     required this.timestamp,
+    required this.sessionId,
   });
 
   Map<String, dynamic> toJson() => {
@@ -288,6 +295,7 @@ class TicTacToeMove {
         'position': position,
         'playerId': playerId,
         'timestamp': timestamp,
+        'sessionId': sessionId,
         'type': 'tictactoe_move',
       };
 
@@ -297,6 +305,7 @@ class TicTacToeMove {
       position: json['position'] as int,
       playerId: json['playerId'] as String,
       timestamp: json['timestamp'] as int,
+      sessionId: (json['sessionId'] as num?)?.toInt() ?? 1,
     );
   }
 }
@@ -313,17 +322,18 @@ class TicTacToeEvent {
   final String? name;
   final String? emoji;
   final Map<String, Map<String, String>>? meta;
+  final int? sessionId;
 
-  TicTacToeEvent._(this.type, {this.move, this.by, this.playerId, this.requesterId, this.players, this.board, this.to, this.name, this.emoji, this.meta});
+  TicTacToeEvent._(this.type, {this.move, this.by, this.playerId, this.requesterId, this.players, this.board, this.to, this.name, this.emoji, this.meta, this.sessionId});
 
   factory TicTacToeEvent.move(TicTacToeMove m) =>
       TicTacToeEvent._('tictactoe_move', move: m);
-  factory TicTacToeEvent.reset({String? by}) =>
-      TicTacToeEvent._('tictactoe_reset', by: by);
+  factory TicTacToeEvent.reset({String? by, int? sessionId}) =>
+      TicTacToeEvent._('tictactoe_reset', by: by, sessionId: sessionId);
   factory TicTacToeEvent.playerRegister(String? playerId, {String? name, String? emoji}) =>
       TicTacToeEvent._('player_register', playerId: playerId, name: name, emoji: emoji);
   factory TicTacToeEvent.snapshotRequest(String? requesterId) =>
       TicTacToeEvent._('snapshot_request', requesterId: requesterId);
-  factory TicTacToeEvent.snapshotState({List<String>? players, List<String>? board, String? to, Map<String, Map<String, String>>? meta}) =>
-      TicTacToeEvent._('snapshot_state', players: players, board: board, to: to, meta: meta);
+  factory TicTacToeEvent.snapshotState({List<String>? players, List<String>? board, String? to, Map<String, Map<String, String>>? meta, int? sessionId}) =>
+      TicTacToeEvent._('snapshot_state', players: players, board: board, to: to, meta: meta, sessionId: sessionId);
 }

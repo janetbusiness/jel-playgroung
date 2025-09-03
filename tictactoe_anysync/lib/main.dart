@@ -1,5 +1,6 @@
 import 'dart:math';
 import 'dart:async';
+import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'anysync_client.dart';
@@ -41,6 +42,8 @@ class _GameScreenState extends State<GameScreen> {
   Timer? _statusTimer;
   bool _showDebug = true;
   bool _verboseLog = false;
+  bool _nodeReachable = false;
+  String? _nodeReachError;
 
   @override
   void initState() {
@@ -101,6 +104,12 @@ class _GameScreenState extends State<GameScreen> {
   }
 
   void _makeMove(int position) {
+    if (!_game.isMyTurn()) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Wait your turn — ${_game.playerEmoji(_game.currentTurnPlayerId ?? '')} ${_game.playerName(_game.currentTurnPlayerId ?? '')} is playing')),
+      );
+      return;
+    }
     if (_game.canPlayPosition(position)) {
       final move = _game.createLocalMove(position);
       _game.applyMove(move);
@@ -110,9 +119,9 @@ class _GameScreenState extends State<GameScreen> {
   }
 
   void _restartGame() {
-    _game.reset();
-    // Broadcast reset so peers clear their boards
-    _client.sendReset(by: _game.localPlayerId);
+    final newId = _game.newSession();
+    // Broadcast reset so peers clear their boards and align session
+    _client.sendReset(by: _game.localPlayerId, sessionId: newId);
     setState(() {});
   }
 
@@ -121,8 +130,22 @@ class _GameScreenState extends State<GameScreen> {
     _statusTimer = Timer.periodic(const Duration(seconds: 1), (_) async {
       final s = await _client.getStatus();
       if (!mounted) return;
+      // Reachability probe: prefer status host/port; fallback to configured
+      final host = s.nodeHost ?? _host;
+      final port = s.nodePort ?? _port;
+      bool reachable = false;
+      String? reachError;
+      try {
+        final socket = await Socket.connect(host, port, timeout: const Duration(milliseconds: 600));
+        await socket.close();
+        reachable = true;
+      } catch (e) {
+        reachError = e.toString();
+      }
       setState(() {
         _status = s;
+        _nodeReachable = reachable;
+        _nodeReachError = reachError;
       });
       if (_verboseLog) {
         // ignore: avoid_print
@@ -181,18 +204,39 @@ class _GameScreenState extends State<GameScreen> {
             width: double.infinity,
             color: Colors.black12,
             padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Expanded(
-                  child: Text(
-                    'Node: ${_status.nodeHost ?? _host}:${_status.nodePort ?? _port}  •  Peers: ${_status.peerCount}  •  Last sync: ${_fmtLastSync(_status.lastSyncMs)}',
-                    overflow: TextOverflow.ellipsis,
-                    style: Theme.of(context).textTheme.bodySmall,
-                  ),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Expanded(
+                      child: Text(
+                        'Node: ${_status.nodeHost ?? _host}:${_status.nodePort ?? _port}  •  Peers: ${_status.peerCount}  •  Last sync: ${_fmtLastSync(_status.lastSyncMs)}',
+                        overflow: TextOverflow.ellipsis,
+                        style: Theme.of(context).textTheme.bodySmall,
+                      ),
+                    ),
+                    if (_spaceId != null)
+                      Text('Space: ${_spaceId!}', style: Theme.of(context).textTheme.bodySmall),
+                  ],
                 ),
-                if (_spaceId != null)
-                  Text('Space: ${_spaceId!}', style: Theme.of(context).textTheme.bodySmall),
+                if (!_nodeReachable)
+                  Padding(
+                    padding: const EdgeInsets.only(top: 4),
+                    child: Row(
+                      children: [
+                        const Icon(Icons.warning_amber_rounded, color: Colors.red, size: 14),
+                        const SizedBox(width: 6),
+                        Expanded(
+                          child: Text(
+                            'Node unreachable. Check Docker and set the Port to the mapped host port of the any-sync node (see `docker ps`).${_nodeReachError != null ? ' ($_nodeReachError)' : ''}',
+                            style: Theme.of(context).textTheme.bodySmall?.copyWith(color: Colors.red),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
               ],
             ),
           ),
@@ -246,7 +290,24 @@ class _GameScreenState extends State<GameScreen> {
               const SizedBox(height: 8),
               Row(
                 children: [
-                  Expanded(child: Text(_game.getStatusText())),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        if (!_game.isOver)
+                          Text(
+                            _game.isMyTurn()
+                                ? 'Your turn (${_game._getPlayerSymbol(_game.localPlayerId)})'
+                                : 'Waiting: ${_game.playerEmoji(_game.currentTurnPlayerId ?? '')} ${_game.playerName(_game.currentTurnPlayerId ?? '')}',
+                            style: TextStyle(
+                              fontWeight: FontWeight.bold,
+                              color: _game.isMyTurn() ? Colors.green : Colors.orange,
+                            ),
+                          ),
+                        Text(_game.getStatusText()),
+                      ],
+                    ),
+                  ),
                   if (_game.isOver)
                     ElevatedButton.icon(
                       onPressed: _restartGame,
@@ -477,6 +538,7 @@ class SimpleTicTacToeCRDT {
   late String localPlayerId;
   late String localName;
   late String localEmoji;
+  int sessionId = 1;
 
   SimpleTicTacToeCRDT() {
     localPlayerId = 'player_${Random().nextInt(1000)}';
@@ -490,6 +552,12 @@ class SimpleTicTacToeCRDT {
   void reset() {
     board = List.filled(9, '');
     allMoves.clear();
+  }
+
+  int newSession() {
+    sessionId += 1;
+    reset();
+    return sessionId;
   }
 
   void registerPlayer(String playerId, {String? name, String? emoji}) {
@@ -522,10 +590,14 @@ class SimpleTicTacToeCRDT {
       position: position,
       playerId: localPlayerId,
       timestamp: DateTime.now().millisecondsSinceEpoch,
+      sessionId: sessionId,
     );
   }
 
   void applyMove(TicTacToeMove move) {
+    if (move.sessionId != sessionId) {
+      return;
+    }
     registerPlayer(move.playerId);
     final existingMove = _findMoveAtPosition(move.position);
     if (existingMove == null) {
@@ -565,6 +637,15 @@ class SimpleTicTacToeCRDT {
         for (final pid in playersOrdered)
           pid: {'name': playerName(pid), 'emoji': playerEmoji(pid)}
       };
+
+  String? get currentTurnPlayerId {
+    final count = board.where((c) => c.isNotEmpty).length;
+    if (playersOrdered.isEmpty) return null;
+    final idx = count % playersOrdered.length;
+    return playersOrdered[idx];
+  }
+
+  bool isMyTurn() => currentTurnPlayerId == localPlayerId;
 
   String getStatusText() {
     final winner = _checkWinner();
