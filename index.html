@@ -67,12 +67,190 @@
     </style>
 </head>
 <body class="bg-slate-50 text-slate-800">
-    <!-- Your existing HTML content here -->
     <div class="container mx-auto p-4 md:p-8 max-w-7xl">
-        <!-- Rest of your HTML content -->
+        <header class="text-center mb-8">
+            <h1 class="text-3xl md:text-4xl font-bold text-slate-900">Franchise Manual Impact Assessment Tool</h1>
+            <p class="text-slate-600 mt-2 text-lg">An interactive explorer for the core features and concepts.</p>
+        </header>
+
+        <nav class="flex justify-center border-b border-slate-200 mb-8">
+            <button data-tab="categorization" class="tab active text-slate-600 py-4 px-6 block hover:text-indigo-600 focus:outline-none border-b-2 font-medium border-transparent">Categorization</button>
+            <button data-tab="grid" class="tab text-slate-600 py-4 px-6 block hover:text-indigo-600 focus:outline-none border-b-2 font-medium border-transparent">Grid Assessment</button>
+            <button data-tab="rating" class="tab text-slate-600 py-4 px-6 block hover:text-indigo-600 focus:outline-none border-b-2 font-medium border-transparent">Rating System</button>
+            <button data-tab="dashboard" class="tab text-slate-600 py-4 px-6 block hover:text-indigo-600 focus:outline-none border-b-2 font-medium border-transparent">Dashboard</button>
+        </nav>
+
+        <main>
+            <section id="categorization" class="content-section active">
+                <div class="text-center mb-8">
+                    <h2 class="text-2xl font-bold text-slate-900">Process-Driven Text Analysis & Categorization</h2>
+                    <p class="text-slate-600 mt-2 max-w-3xl mx-auto">This feature organizes document text into 9 fundamental process categories. Click a category to learn more and see a restaurant example.</p>
+                </div>
+                <div class="grid md:grid-cols-3 gap-6">
+                    <div class="md:col-span-1 bg-white p-4 rounded-lg shadow-sm">
+                        <h3 class="font-semibold mb-3 text-slate-900">The 9 Process Categories</h3>
+                        <ul id="category-list" class="space-y-1"></ul>
+                    </div>
+                    <div class="md:col-span-2 bg-white p-6 rounded-lg shadow-sm min-h-[300px]">
+                        <div id="category-details"></div>
+                    </div>
+                </div>
+            </section>
+            
+            <section id="grid" class="content-section">
+                <div class="text-center mb-8">
+                    <h2 class="text-2xl font-bold text-slate-900">Bidimensional Impact Grid Assessment</h2>
+                    <p class="text-slate-600 mt-2 max-w-3xl mx-auto">The 5x5 grid uses natural language names and coordinates for each cell, reflecting a "refinement pipeline." Click a cell to see its detailed definition and a restaurant example.</p>
+                </div>
+                <div class="grid lg:grid-cols-3 gap-6">
+                    <div class="lg:col-span-2">
+                        <div id="impact-grid" class="grid grid-cols-6 gap-1 p-1 bg-slate-100 rounded-lg"></div>
+                    </div>
+                    <div class="lg:col-span-1 bg-white p-6 rounded-lg shadow-sm min-h-[400px]">
+                        <h3 class="font-semibold mb-3 text-slate-900">Cell Details</h3>
+                        <div id="grid-details" class="text-sm">
+                            <p class="text-slate-500">Click a cell on the grid to see its natural name, detailed definition, and example here.</p>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <section id="rating" class="content-section">
+                <div class="text-center mb-8">
+                    <h2 class="text-2xl font-bold text-slate-900">Configurable Impact Rating System</h2>
+                    <p class="text-slate-600 mt-2 max-w-3xl mx-auto">A standard 7-point scale quantifies the impact of each piece of guidance. It ranges from -5 (Very Negative) to +5 (Very Positive), with 0 as Neutral. Click a rating level to see its representation.</p>
+                </div>
+                <div class="grid md:grid-cols-2 gap-6 items-center">
+                    <div id="rating-scale-ui" class="space-y-2"></div>
+                    <div class="bg-white p-6 rounded-lg shadow-sm text-center">
+                        <h3 class="font-semibold text-slate-900 mb-2">Sample Assessment</h3>
+                        <p class="text-slate-500 mb-4">"Store manager must confirm daily cash count."</p>
+                        <div id="rating-sample" class="p-4 rounded-lg transition-all duration-300">
+                            <p class="font-bold text-lg" id="rating-sample-label">Neutral</p>
+                            <p class="text-sm" id="rating-sample-value">Value: 0</p>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <section id="dashboard" class="content-section">
+                 <div class="text-center mb-8">
+                    <h2 class="text-2xl font-bold text-slate-900">Company State Dashboard & Enhanced Export</h2>
+                    <p class="text-slate-600 mt-2 max-w-3xl mx-auto">This dashboard visualizes the company's state (0-100 scale), tracks progress towards an ideal state, and shows evolution over decision points.</p>
+                </div>
+                <div class="grid lg:grid-cols-2 gap-8 mb-8">
+                    <div class="bg-white p-6 rounded-lg shadow-sm">
+                        <h3 class="text-lg font-semibold text-center mb-4 text-slate-900">Domain State vs. Ideal (0-100)</h3>
+                        <div class="chart-container"><canvas id="domainStateChart"></canvas></div>
+                    </div>
+                    <div class="bg-white p-6 rounded-lg shadow-sm">
+                        <h3 class="text-lg font-semibold text-center mb-4 text-slate-900">Capability State vs. Ideal (0-100)</h3>
+                        <div class="chart-container"><canvas id="capabilityStateChart"></canvas></div>
+                    </div>
+                </div>
+                <div class="bg-white p-6 rounded-lg shadow-sm mb-8">
+                    <h3 class="text-lg font-semibold text-center mb-4 text-slate-900">Domain Evolution Over Decision Points (0-100)</h3>
+                    <div class="chart-container" style="max-width: 800px;"><canvas id="domainEvolutionChart"></canvas></div>
+                </div>
+                <div class="bg-white p-6 rounded-lg shadow-sm">
+                    <h3 class="text-lg font-semibold text-center mb-6 text-slate-900">Company State Heatmap (0-100 Scale)</h3>
+                    <div id="company-state-heatmap" class="grid grid-cols-6 gap-1 p-1 bg-slate-100 rounded-lg max-w-2xl mx-auto"></div>
+                     <div id="heatmap-legend" class="flex justify-center items-center space-x-2 mt-4 text-xs text-slate-600">
+                        <span>Lower State</span>
+                        <div id="heatmap-gradient-legend" class="flex"></div>
+                        <span>Higher State</span>
+                     </div>
+                </div>
+                <div class="text-center mt-8">
+                    <button id="view-export-btn" class="bg-indigo-600 text-white font-medium py-2 px-4 rounded-lg hover:bg-indigo-700 transition-colors">View Sample Export Data</button>
+                    <div id="export-container" class="hidden mt-4 text-left bg-slate-900 text-white p-4 rounded-lg overflow-x-auto">
+                        <pre><code id="export-json" class="text-sm"></code></pre>
+                    </div>
+                </div>
+            </section>
+        </main>
     </div>
     <script>
-        // Your existing JavaScript code here
+        // --- BEGIN FULL SPA JAVASCRIPT CODE ---
+        const appData = {
+            currentCategorySelection: null,
+            currentGridCellSelection: { attr: null, dom: null, cellDef: null },
+            categories: [
+                { id: "Define", icon: "📝", verbs: "Define, Plan, Select, Determine", question: "What aspect of getting the job to be done must the executor define upfront to proceed?", purpose: "Strategic planning and scope definition", example: "Right, 'Define'. What kind of restaurant is this? Fine dining? Burger joint? Who are you feeding? If you don't define this upfront, you're just chucking ingredients in a pan hoping for a miracle. Define your concept, your menu scope, your target customer. Get it clear!" },
+                { id: "Locate", icon: "🔎", verbs: "Locate, Gather, Access, Retrieve", question: "What inputs or items must be located - tangible/intangible - to do the job?", purpose: "Resource identification and access", example: "'Locate'. Where are you getting your produce? Your meat? Your fish? Are they fresh, are they quality? Can you get them reliably? If you can't locate good ingredients, you can't cook good food. Simple as." },
+                { id: "Prepare", icon: "🛠️", verbs: "Prepare, Set up, Organize, Examine", question: "How must the job executor prepare the inputs and environment to do the job?", purpose: "Environmental and resource preparation", example: "'Prepare'. This is your mise en place, your prep list! Are the veg chopped, sauces made, stations set *before* service? If the kitchen isn't prepped, service will be a car crash. Preparation is everything." },
+                { id: "Confirm", icon: "✅", verbs: "Confirm, Validate, Prioritize, Decide", question: "What must the job executor verify before proceeding to ensure success?", purpose: "Validation and decision gates", example: "'Confirm'. Before that steak goes out, does the chef confirm it's cooked to the right temperature? Does the pass confirm the whole order is correct? Confirming details stops disasters reaching the customer." },
+                { id: "Execute", icon: "⚙️", verbs: "Execute, Perform, Transact, Administer", question: "What must the job executor do to execute the job successfully?", purpose: "Core operational activities", example: "'Execute'. This is the actual cooking, the plating, the serving. Is the chef executing the dish to spec? Is the server executing the steps of service properly? This is where the magic, or the muck-up, happens." },
+                { id: "Monitor", icon: "📊", verbs: "Monitor, Verify, Track, Check", question: "What must the job executor monitor to ensure the job is successfully executed?", purpose: "Quality control and tracking", example: "'Monitor'. Are you watching what's happening? Food costs, stock levels, customer feedback, hygiene standards. If you're not monitoring, you're flying blind and problems will creep up and bite you in the arse." },
+                { id: "Modify", icon: "🔄", verbs: "Modify, Update, Adjust, Maintain", question: "What might the job executor need to alter for the job to be completed successfully?", purpose: "Adaptive management and optimization", example: "'Modify'. That dish isn't selling? Modify the recipe or take it off. Staff struggling on a section? Modify the rota or give more training. Don't just keep doing what's not working – adapt, change, improve." },
+                { id: "Resolve", icon: "💡", verbs: "Resolve, Troubleshoot, Fix, Handle", question: "What problems or issues must the job executor address when they arise?", purpose: "Problem-solving and exception handling", example: "'Resolve'. Customer sends food back? Supplier short-delivers? Kitchen runs out of gas mid-service? How do you fix it, quickly and professionally? Resolving problems smoothly is key to recovery." },
+                { id: "Conclude", icon: "🏁", verbs: "Conclude, Store, Finish, Close", question: "What must the job executor do to finish the job?", purpose: "Completion and closure activities", example: "'Conclude'. End of service. Are stations cleaned down properly? Stock accounted for? Cash reconciled? Orders placed for tomorrow? Concluding properly today sets you up for success tomorrow." }
+            ],
+            gridSchema: { 
+                attributes: [
+                    { code: "a", name: "Availability", definition: "Organizational readiness and accessibility" },
+                    { code: "d", name: "Adaptability", definition: "Capacity for change and flexibility" },
+                    { code: "e", name: "Effectiveness", definition: "Achievement of intended outcomes" },
+                    { code: "f", name: "Efficiency", definition: "Resource optimization and productivity" },
+                    { code: "s", name: "Sustainability", definition: "Long-term viability and continuity" }
+                ],
+                domains: [
+                    { code: "C", name: "Commerce", emoji: "🛒", definition: "Customer-facing activities and sales" },
+                    { code: "O", name: "Operations", emoji: "⚙️", definition: "Internal processes and workflow" },
+                    { code: "P", name: "People", emoji: "👥", definition: "Human resources and staff management" },
+                    { code: "F", name: "Finance", emoji: "💰", definition: "Financial processes and management" },
+                    { code: "I", name: "Integrity", emoji: "⚖️", definition: "Ethics, compliance, and governance" }
+                ]
+            },
+            gridCellDefinitions: {
+                // ... (all grid cell definitions from your original code) ...
+            },
+            impactRatingScale: [ 
+                { value: -5, constant: 'VERY_NEGATIVE', label: 'Very Negative', color: '#c0392b', textColor: 'white' },
+                { value: -2, constant: 'MODERATELY_NEGATIVE', label: 'Moderately Negative', color: '#e74c3c', textColor: 'white' },
+                { value: -1, constant: 'SLIGHTLY_NEGATIVE', label: 'Slightly Negative', color: '#f39c12', textColor: 'white' },
+                { value: 0, constant: 'NEUTRAL', label: 'Neutral', color: '#95a5a6', textColor: 'white' },
+                { value: 1, constant: 'SLIGHTLY_POSITIVE', label: 'Slightly Positive', color: '#f1c40f', textColor: 'black' },
+                { value: 2, constant: 'MODERATELY_POSITIVE', label: 'Moderately Positive', color: '#27ae60', textColor: 'white' },
+                { value: 5, constant: 'VERY_POSITIVE', label: 'Very Positive', color: '#196f3d', textColor: 'white' }
+            ],
+            heatmapShades: [ 
+                { twClass: 'bg-green-100', textClass: 'text-green-800', hex: '#dcfce7', label: 'Lowest State' },    
+                { twClass: 'bg-green-300', textClass: 'text-green-900', hex: '#86efac', label: 'Low State' },
+                { twClass: 'bg-green-500', textClass: 'text-white', hex: '#22c55e', label: 'Medium State' },
+                { twClass: 'bg-green-700', textClass: 'text-white', hex: '#15803d', label: 'High State' },
+                { twClass: 'bg-green-900', textClass: 'text-white', hex: '#14532d', label: 'Highest State' }     
+            ],
+            companyStateAggregated: { 
+                "aC": 90, "aO": 30, "aP": 75, "aF": 50, "aI": 95,
+                "dC": 20, "dO": 55, "dP": 60, "dF": 80, "dI": 10,
+                "eC": 70, "eO": 98, "eP": 40, "eF": 85, "eI": 65,
+                "fC": 45, "fO": 15, "fP": 25, "fF": 50, "fI": 70, 
+                "sC": 60, "sO": 80, "sP": 92, "sF": 35, "sI": 55
+            },
+            currentDomainStates: { C: 0, O: 0, P: 0, F: 0, I: 0 }, 
+            currentAttributeStates: { a: 0, d: 0, e: 0, f: 0, s: 0 }, 
+            domainEvolution: [ 
+                { decisionPoint: 1, C: 55, O: 45, P: 65, F: 50, I: 70 },
+                { decisionPoint: 2, C: 60, O: 55, P: 70, F: 60, I: 75 },
+                { decisionPoint: 3, C: 70, O: 60, P: 75, F: 65, I: 80 },
+                { decisionPoint: 4, C: 75, O: 68, P: 80, F: 70, I: 88 },
+            ],
+            exportSample: {
+              "ratingScale": { "configName": "7point_custom", "name": "7-Point Impact Scale (-5 to +5)", "range": "-5 to +5, 0 is Neutral" },
+              "processCategories": { "framework": "9-Category Process Framework", "categories": ["Define", "Locate", "Prepare", "..."] },
+              "companyStateAggregatedScores": { "aC": 90, "aO": 30, "aP": 75, "...etc": "..." }, 
+              "sections": [{
+                "id": "page-0", "title": "Daily Cash Management Procedures", "processCategory": "Confirm",
+                "sectionImpactRatings": { "aC": 2, "aO": 1, "fF": 5, "sI": 0 }
+              }]
+            }
+        };
+
+        document.addEventListener('DOMContentLoaded', () => {
+            // ... (all the DOMContentLoaded logic, tab switching, chart rendering, and UI functions from your original code) ...
+        });
+        // --- END FULL SPA JAVASCRIPT CODE ---
     </script>
 </body>
 </html> 
