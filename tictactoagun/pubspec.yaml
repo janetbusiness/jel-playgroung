@@ -1,0 +1,21 @@
+name: tictactoagun
+description: TicTacToe synchronized via GUN.js relay (HTTP+SSE)
+publish_to: 'none'
+version: 0.1.0
+environment:
+  sdk: '>=3.2.0 <4.0.0'
+
+dependencies:
+  flutter:
+    sdk: flutter
+  http: ^1.2.1
+  eventsource: ^1.0.1
+
+dev_dependencies:
+  flutter_lints: ^4.0.0
+  flutter_test:
+    sdk: flutter
+
+flutter:
+  uses-material-design: true
+
