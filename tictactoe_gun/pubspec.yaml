@@ -8,8 +8,8 @@ environment:
 dependencies:
   flutter:
     sdk: flutter
-  http: ^1.2.1
-  eventsource: ^1.0.1
+  http: ^0.13.6
+  eventsource: ^0.4.0
 
 dev_dependencies:
   flutter_lints: ^4.0.0
@@ -18,4 +18,3 @@ dev_dependencies:
 
 flutter:
   uses-material-design: true
-

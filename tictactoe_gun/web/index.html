@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <base href="/">
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>TicTacToe + GUN (Web)</title>
+    <!-- GUN core + SEA (crypto). Optional: webrtc mesh if needed. -->
+    <script src="https://cdn.jsdelivr.net/npm/gun/gun.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/gun/sea.js"></script>
+    <!-- <script src="https://cdn.jsdelivr.net/npm/gun/lib/webrtc.js"></script> -->
+  </head>
+  <body>
+    <script src="flutter.js" defer></script>
+    <script>
+      window.addEventListener('load', function () {
+        if (!window.Gun) {
+          console.error('GUN not loaded — check CDN connectivity.');
+        }
+        _flutter.loader.loadEntrypoint({
+          onEntrypointLoaded: function (engineInitializer) {
+            engineInitializer.initializeEngine().then(function (appRunner) {
+              appRunner.runApp();
+            });
+          }
+        });
+      });
+    </script>
+  </body>
+  </html>

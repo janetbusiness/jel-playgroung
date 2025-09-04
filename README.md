@@ -1,6 +1,6 @@
-# P2P TicTacToe with any-sync (Flutter + Go FFI)
+# P2P Playground (Flutter + Go FFI, any-sync)
 
-This repository contains a real-time, peer‑to‑peer TicTacToe application built with Flutter, using a Go FFI bridge to the any-sync protocol. It also contains a legacy `index.html` at the root that is unrelated to the current project (kept for reference).
+This repository is a playground for us to test and evaluate P2P technologies and app architectures. The current primary experiment is a real-time, peer‑to‑peer TicTacToe application built with Flutter, using a Go FFI bridge to the any-sync protocol. It also contains a legacy `index.html` at the root that is unrelated to the current project (kept for reference).
 
 Goal: Two Flutter instances play TicTacToe over the any-sync network with local‑first moves, real-time sync, and deterministic conflict resolution — no central server.
 
@@ -8,13 +8,17 @@ Key Stack
 - Flutter UI → Dart FFI → Go shared library → any-sync network (composed via app.App and components)
 
 Repository Structure
-- `tictactoe_anysync/` — main project
+- `tictactoe_anysync/` — main project (any-sync experiment)
   - `go/` — Go FFI bridge and build scripts
   - `lib/` — Flutter app, FFI bindings, and UI
   - `scripts/` — helper scripts for environment checks and docker setup
   - `RESEARCH.md` — notes on any-sync APIs and composition
   - `README.md` — detailed component-level guide
+- `tictactoe_gun/` — prior/alternative P2P experiment (GUN-based; optional; see its own README)
 - `index.html` — legacy artifact (unrelated to the new P2P app)
+
+Notes on cleanup
+- The former `tictactoagun/` folder was removed as part of housekeeping. Any remaining references have been cleared.
 
 Architecture
 - Flutter App
