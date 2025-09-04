@@ -10,6 +10,7 @@ dependencies:
     sdk: flutter
   http: ^0.13.6
   eventsource: ^0.4.0
+  flame: ^1.32.0
 
 dev_dependencies:
   flutter_lints: ^4.0.0

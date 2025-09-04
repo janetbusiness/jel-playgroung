@@ -2,9 +2,12 @@ import 'dart:async';
 import 'dart:convert';
 import 'dart:developer' as dev;
 import 'dart:math';
+import 'dart:math' as math;
 import 'package:eventsource/eventsource.dart';
 import 'package:flutter/material.dart';
 import 'gun_client.dart';
+import 'package:flame/particles.dart';
+import 'package:flame/widgets.dart';
 
 void main() => runApp(const TicTacToeGunApp());
 
@@ -35,6 +38,8 @@ class _GameScreenState extends State<GameScreen> {
   DateTime _lastEventAt = DateTime.now();
   Timer? _watchdog;
   Timer? _clockTicker;
+  bool _burstActive = false;
+  int _burstSeed = 0;
 
   void _log(String msg) {
     final ts = DateTime.now().toIso8601String();
@@ -324,6 +329,7 @@ class _GameScreenState extends State<GameScreen> {
         'type': 'time_update',
         ...timeUpdate,
       });
+      _triggerBurst();
       setState(() {});
     }
   }
@@ -347,7 +353,13 @@ class _GameScreenState extends State<GameScreen> {
         backgroundColor: _connected ? Colors.green : Colors.red,
         actions: [IconButton(tooltip: 'Settings', icon: const Icon(Icons.settings), onPressed: _showConnectionSettings)],
       ),
-      body: _buildBody(),
+      body: Stack(children: [
+        _buildBody(),
+        if (_burstActive)
+          Positioned.fill(
+            child: IgnorePointer(child: _buildBurstOverlay()),
+          ),
+      ]),
       floatingActionButton: _connected
           ? FloatingActionButton.extended(onPressed: _showJoinDialog, icon: const Icon(Icons.link), label: const Text('Join Space'))
           : null,
@@ -424,6 +436,44 @@ class _GameScreenState extends State<GameScreen> {
         ),
       ),
     ]);
+  }
+
+  Widget _buildBurstOverlay() {
+    // Colorful particle burst at center
+    final rnd = Random(_burstSeed);
+    final particle = Particle.generate(
+      count: 80,
+      lifespan: 0.9,
+      generator: (i) {
+        final angle = rnd.nextDouble() * math.pi * 2;
+        final speed = 80 + rnd.nextDouble() * 240;
+        final vx = speed * math.cos(angle);
+        final vy = speed * math.sin(angle);
+        return AcceleratedParticle(
+          acceleration: const Offset(0, 200),
+          speed: Offset(vx, vy),
+          position: Offset.zero,
+          child: CircleParticle(
+            radius: 2 + rnd.nextDouble() * 5,
+            paint: Paint()
+              ..color = Colors.primaries[rnd.nextInt(Colors.primaries.length)]
+                  .withOpacity(0.9),
+          ),
+        );
+      },
+    );
+    return ParticleWidget(particle: particle, alignment: Alignment.center);
+  }
+
+  void _triggerBurst() {
+    setState(() {
+      _burstActive = true;
+      _burstSeed++;
+    });
+    Future.delayed(const Duration(milliseconds: 900), () {
+      if (!mounted) return;
+      setState(() => _burstActive = false);
+    });
   }
 
   String _fmtMs(int ms) {
