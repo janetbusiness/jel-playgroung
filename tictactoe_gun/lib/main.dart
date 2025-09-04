@@ -8,6 +8,9 @@ import 'package:flutter/material.dart';
 import 'gun_client.dart';
 import 'package:flame/particles.dart';
 import 'package:flame/widgets.dart';
+import 'package:flame_audio/flame_audio.dart';
+import 'package:flame/particles.dart';
+import 'package:flame/widgets.dart';
 
 void main() => runApp(const TicTacToeGunApp());
 
@@ -38,8 +41,8 @@ class _GameScreenState extends State<GameScreen> {
   DateTime _lastEventAt = DateTime.now();
   Timer? _watchdog;
   Timer? _clockTicker;
-  bool _burstActive = false;
-  int _burstSeed = 0;
+  final List<_Burst> _bursts = [];
+  // Replaced by _bursts list
 
   void _log(String msg) {
     final ts = DateTime.now().toIso8601String();
@@ -194,6 +197,9 @@ class _GameScreenState extends State<GameScreen> {
       case 'tictactoe_move':
         final move = TicTacToeMove.fromJson(ev);
         _game.handleRemoteMove(move);
+        _playSfx('move.wav');
+        _triggerBurstAt(_alignmentForIndex(move.position));
+        if (_game.isOver) { _triggerBurstAt(Alignment.center, scale: 2.0, duration: const Duration(milliseconds: 1100)); _playSfx('win.wav'); }
         if (mounted) setState(() {});
         break;
       case 'tictactoe_reset':
@@ -266,6 +272,14 @@ class _GameScreenState extends State<GameScreen> {
         _game.applyTimeUpdate(remaining: rem, turnStartTs: ts, incrementMs: inc);
         if (mounted) setState(() {});
         break;
+      case 'time_flag':
+        final winner = (ev['winnerId'] ?? '').toString();
+        final loser = (ev['loserId'] ?? '').toString();
+        _game.applyFlag(winnerId: winner, loserId: loser);
+        _triggerBurstAt(Alignment.center, scale: 2.2, duration: const Duration(milliseconds: 1200));
+        _playSfx('win.wav');
+        if (mounted) setState(() {});
+        break;
     }
   }
 
@@ -329,7 +343,9 @@ class _GameScreenState extends State<GameScreen> {
         'type': 'time_update',
         ...timeUpdate,
       });
-      _triggerBurst();
+      _playSfx('move.wav');
+      _triggerBurstAt(_alignmentForIndex(position));
+      if (_game.isOver) { _triggerBurstAt(Alignment.center, scale: 2.0, duration: const Duration(milliseconds: 1100)); _playSfx('win.wav'); }
       setState(() {});
     }
   }
@@ -355,7 +371,7 @@ class _GameScreenState extends State<GameScreen> {
       ),
       body: Stack(children: [
         _buildBody(),
-        if (_burstActive)
+        if (_bursts.isNotEmpty)
           Positioned.fill(
             child: IgnorePointer(child: _buildBurstOverlay()),
           ),
@@ -439,42 +455,47 @@ class _GameScreenState extends State<GameScreen> {
   }
 
   Widget _buildBurstOverlay() {
-    // Colorful particle burst at center
-    final rnd = Random(_burstSeed);
-    final particle = Particle.generate(
-      count: 80,
-      lifespan: 0.9,
-      generator: (i) {
-        final angle = rnd.nextDouble() * math.pi * 2;
-        final speed = 80 + rnd.nextDouble() * 240;
-        final vx = speed * math.cos(angle);
-        final vy = speed * math.sin(angle);
-        return AcceleratedParticle(
-          acceleration: const Offset(0, 200),
-          speed: Offset(vx, vy),
-          position: Offset.zero,
-          child: CircleParticle(
-            radius: 2 + rnd.nextDouble() * 5,
-            paint: Paint()
-              ..color = Colors.primaries[rnd.nextInt(Colors.primaries.length)]
-                  .withOpacity(0.9),
-          ),
-        );
-      },
-    );
-    return ParticleWidget(particle: particle, alignment: Alignment.center);
+    return Stack(children: _bursts.map((b) {
+      final rnd = Random(b.seed);
+      final particle = Particle.generate(
+        count: (80 * b.scale).round(),
+        lifespan: 0.8 + 0.4 * b.scale,
+        generator: (i) {
+          final angle = rnd.nextDouble() * math.pi * 2;
+          final speed = (80 + rnd.nextDouble() * 240) * b.scale;
+          final vx = speed * math.cos(angle);
+          final vy = speed * math.sin(angle);
+          return AcceleratedParticle(
+            acceleration: Offset(0, 200 * b.scale),
+            speed: Offset(vx, vy),
+            position: Offset.zero,
+            child: CircleParticle(
+              radius: 2 + rnd.nextDouble() * 5 * b.scale,
+              paint: Paint()
+                ..color = Colors.primaries[rnd.nextInt(Colors.primaries.length)]
+                    .withOpacity(0.9),
+            ),
+          );
+        },
+      );
+      return Align(alignment: b.alignment, child: ParticleWidget(particle: particle));
+    }).toList());
   }
 
-  void _triggerBurst() {
-    setState(() {
-      _burstActive = true;
-      _burstSeed++;
-    });
-    Future.delayed(const Duration(milliseconds: 900), () {
-      if (!mounted) return;
-      setState(() => _burstActive = false);
-    });
+  void _triggerBurstAt(Alignment alignment, {double scale = 1.0, Duration duration = const Duration(milliseconds: 900)}) {
+    final b = _Burst(seed: DateTime.now().microsecondsSinceEpoch, alignment: alignment, scale: scale, endAt: DateTime.now().add(duration));
+    setState(() => _bursts.add(b));
+    Future.delayed(duration, () { if (!mounted) return; setState(() => _bursts.remove(b)); });
   }
+
+  Alignment _alignmentForIndex(int index) {
+    final row = (index ~/ 3).clamp(0, 2);
+    final col = (index % 3).clamp(0, 2);
+    const positions = [-0.8, 0.0, 0.8];
+    return Alignment(positions[col], positions[row]);
+  }
+
+  void _playSfx(String name) { try { FlameAudio.play(name, volume: 0.8); } catch (_) {} }
 
   String _fmtMs(int ms) {
     final s = (ms / 1000).floor();
@@ -774,6 +795,14 @@ class SimpleTicTacToeCRDT {
   void applyFlag({required String winnerId, required String loserId}) {
     flagged = true; flagWinner = winnerId; flagLoser = loserId;
   }
+}
+
+class _Burst {
+  final int seed;
+  final Alignment alignment;
+  final double scale;
+  final DateTime endAt;
+  _Burst({required this.seed, required this.alignment, this.scale = 1.0, required this.endAt});
 }
 
 const _firstNames = ['Alex','Sam','Taylor','Jordan','Casey','Riley','Avery','Jamie','Morgan','Quinn','Harper','Skyler','Drew','Cameron','Rowan','Parker','Reese','Charlie','Elliot','Logan'];
