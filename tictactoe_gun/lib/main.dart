@@ -9,6 +9,7 @@ import 'gun_client.dart';
 import 'package:flame/particles.dart';
 import 'package:flame/widgets.dart';
 import 'package:flame_audio/flame_audio.dart';
+import 'package:vector_math/vector_math_64.dart' show Vector2;
 import 'package:flame/particles.dart';
 import 'package:flame/widgets.dart';
 
@@ -466,9 +467,9 @@ class _GameScreenState extends State<GameScreen> {
           final vx = speed * math.cos(angle);
           final vy = speed * math.sin(angle);
           return AcceleratedParticle(
-            acceleration: Offset(0, 200 * b.scale),
-            speed: Offset(vx, vy),
-            position: Offset.zero,
+            acceleration: Vector2(0, 200 * b.scale),
+            speed: Vector2(vx, vy),
+            position: Vector2.zero(),
             child: CircleParticle(
               radius: 2 + rnd.nextDouble() * 5 * b.scale,
               paint: Paint()
@@ -478,7 +479,10 @@ class _GameScreenState extends State<GameScreen> {
           );
         },
       );
-      return Align(alignment: b.alignment, child: ParticleWidget(particle: particle));
+      return Align(
+        alignment: b.alignment,
+        child: SizedBox.expand(child: _ParticleWidgetLite(particle: particle)),
+      );
     }).toList());
   }
 
@@ -803,6 +807,57 @@ class _Burst {
   final double scale;
   final DateTime endAt;
   _Burst({required this.seed, required this.alignment, this.scale = 1.0, required this.endAt});
+}
+
+class _ParticleWidgetLite extends StatefulWidget {
+  final Particle particle;
+  const _ParticleWidgetLite({super.key, required this.particle});
+  @override
+  State<_ParticleWidgetLite> createState() => _ParticleWidgetLiteState();
+}
+
+class _ParticleWidgetLiteState extends State<_ParticleWidgetLite>
+    with SingleTickerProviderStateMixin {
+  late final Ticker _ticker;
+  Duration _last = Duration.zero;
+  @override
+  void initState() {
+    super.initState();
+    _ticker = createTicker((elapsed) {
+      final dt = ((elapsed - _last).inMicroseconds) / 1e6;
+      if (dt > 0) {
+        widget.particle.update(dt);
+        setState(() {});
+      }
+      _last = elapsed;
+    })..start();
+  }
+
+  @override
+  void dispose() {
+    _ticker.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return CustomPaint(painter: _ParticlePainterLite(widget.particle));
+  }
+}
+
+class _ParticlePainterLite extends CustomPainter {
+  final Particle particle;
+  _ParticlePainterLite(this.particle);
+  @override
+  void paint(Canvas canvas, Size size) {
+    canvas.save();
+    canvas.translate(size.width / 2, size.height / 2);
+    particle.render(canvas);
+    canvas.restore();
+  }
+
+  @override
+  bool shouldRepaint(covariant _ParticlePainterLite oldDelegate) => true;
 }
 
 const _firstNames = ['Alex','Sam','Taylor','Jordan','Casey','Riley','Avery','Jamie','Morgan','Quinn','Harper','Skyler','Drew','Cameron','Rowan','Parker','Reese','Charlie','Elliot','Logan'];
